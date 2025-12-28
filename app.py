@@ -1142,6 +1142,457 @@ def delete_account():
 
 
 # ===========================================
+# TEAM MANAGEMENT ENDPOINTS
+# ===========================================
+
+class TeamMember(db.Model):
+    """Team member model for organization management"""
+    __tablename__ = 'team_members'
+
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    email = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(50), default='member')  # owner, admin, member, viewer
+    status = db.Column(db.String(50), default='pending')  # pending, active
+    invite_token = db.Column(db.String(255), unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'role': self.role,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+@app.route('/api/team/members', methods=['GET'])
+@jwt_required()
+def get_team_members():
+    """Get all team members"""
+    user_id = get_jwt_identity()
+    members = TeamMember.query.filter_by(team_id=user_id).all()
+    return jsonify({'members': [m.to_dict() for m in members]})
+
+
+@app.route('/api/team/invite', methods=['POST'])
+@jwt_required()
+@limiter.limit("10 per hour")
+def invite_team_member():
+    """Invite a new team member"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    email = data.get('email', '').lower().strip()
+    role = data.get('role', 'member')
+    message = data.get('message', '')
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    if role not in ['admin', 'member', 'viewer']:
+        return jsonify({'error': 'Invalid role'}), 400
+
+    # Check if already invited
+    existing = TeamMember.query.filter_by(team_id=user_id, email=email).first()
+    if existing:
+        return jsonify({'error': 'User already invited'}), 400
+
+    # Create invite
+    invite_token = secrets.token_urlsafe(32)
+    member = TeamMember(
+        team_id=user_id,
+        email=email,
+        role=role,
+        invite_token=invite_token
+    )
+    db.session.add(member)
+    db.session.commit()
+
+    # Send invite email
+    invite_url = f"{os.environ.get('APP_URL', 'https://app.blackroad.io')}/join?token={invite_token}"
+    send_email(
+        email,
+        f"You're invited to join {user.name}'s team on BlackRoad OS",
+        f'''
+        <h2>Team Invitation</h2>
+        <p>Hi there,</p>
+        <p>{user.name or user.email} has invited you to join their team on BlackRoad OS as a {role}.</p>
+        {f'<p>"{message}"</p>' if message else ''}
+        <p style="margin: 30px 0;">
+            <a href="{invite_url}" style="background: #667eea; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                Accept Invitation
+            </a>
+        </p>
+        <p>Best,<br>The BlackRoad Team</p>
+        ''',
+        None
+    )
+
+    log_event('team_invite_sent', {'email': email, 'role': role}, user_id)
+
+    return jsonify({'message': 'Invite sent', 'member': member.to_dict()}), 201
+
+
+@app.route('/api/team/members/<int:member_id>', methods=['PUT'])
+@jwt_required()
+def update_team_member(member_id):
+    """Update team member role"""
+    user_id = get_jwt_identity()
+    member = TeamMember.query.filter_by(id=member_id, team_id=user_id).first()
+
+    if not member:
+        return jsonify({'error': 'Member not found'}), 404
+
+    data = request.get_json()
+    if data.get('role') in ['admin', 'member', 'viewer']:
+        member.role = data['role']
+        db.session.commit()
+        log_event('team_member_updated', {'member_id': member_id, 'role': data['role']}, user_id)
+
+    return jsonify({'message': 'Member updated', 'member': member.to_dict()})
+
+
+@app.route('/api/team/members/<int:member_id>', methods=['DELETE'])
+@jwt_required()
+def remove_team_member(member_id):
+    """Remove team member"""
+    user_id = get_jwt_identity()
+    member = TeamMember.query.filter_by(id=member_id, team_id=user_id).first()
+
+    if not member:
+        return jsonify({'error': 'Member not found'}), 404
+
+    db.session.delete(member)
+    db.session.commit()
+    log_event('team_member_removed', {'member_id': member_id}, user_id)
+
+    return jsonify({'message': 'Member removed'})
+
+
+# ===========================================
+# WEBHOOK MANAGEMENT ENDPOINTS
+# ===========================================
+
+class Webhook(db.Model):
+    """Webhook configuration model"""
+    __tablename__ = 'webhooks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.String(255))
+    secret = db.Column(db.String(255))
+    events = db.Column(db.JSON)  # List of event types to subscribe to
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_triggered_at = db.Column(db.DateTime)
+    success_count = db.Column(db.Integer, default=0)
+    failure_count = db.Column(db.Integer, default=0)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'description': self.description,
+            'events': self.events,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_triggered_at': self.last_triggered_at.isoformat() if self.last_triggered_at else None,
+            'success_count': self.success_count,
+            'failure_count': self.failure_count
+        }
+
+
+class WebhookDelivery(db.Model):
+    """Webhook delivery log"""
+    __tablename__ = 'webhook_deliveries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    webhook_id = db.Column(db.Integer, db.ForeignKey('webhooks.id'), nullable=False)
+    event_type = db.Column(db.String(100), nullable=False)
+    payload = db.Column(db.JSON)
+    response_code = db.Column(db.Integer)
+    response_body = db.Column(db.Text)
+    response_time_ms = db.Column(db.Integer)
+    success = db.Column(db.Boolean)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'event_type': self.event_type,
+            'response_code': self.response_code,
+            'response_time_ms': self.response_time_ms,
+            'success': self.success,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+@app.route('/api/webhooks', methods=['GET'])
+@jwt_required()
+def get_webhooks():
+    """Get all webhooks for user"""
+    user_id = get_jwt_identity()
+    webhooks = Webhook.query.filter_by(user_id=user_id).all()
+    return jsonify({'webhooks': [w.to_dict() for w in webhooks]})
+
+
+@app.route('/api/webhooks', methods=['POST'])
+@jwt_required()
+def create_webhook():
+    """Create a new webhook"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    webhook = Webhook(
+        user_id=user_id,
+        url=url,
+        description=data.get('description', ''),
+        secret=data.get('secret', secrets.token_urlsafe(32)),
+        events=data.get('events', ['deployment.completed', 'deployment.failed'])
+    )
+    db.session.add(webhook)
+    db.session.commit()
+
+    log_event('webhook_created', {'webhook_id': webhook.id}, user_id)
+
+    return jsonify({'message': 'Webhook created', 'webhook': webhook.to_dict()}), 201
+
+
+@app.route('/api/webhooks/<int:webhook_id>', methods=['PUT'])
+@jwt_required()
+def update_webhook(webhook_id):
+    """Update webhook configuration"""
+    user_id = get_jwt_identity()
+    webhook = Webhook.query.filter_by(id=webhook_id, user_id=user_id).first()
+
+    if not webhook:
+        return jsonify({'error': 'Webhook not found'}), 404
+
+    data = request.get_json()
+
+    if 'url' in data:
+        webhook.url = data['url']
+    if 'description' in data:
+        webhook.description = data['description']
+    if 'events' in data:
+        webhook.events = data['events']
+    if 'is_active' in data:
+        webhook.is_active = data['is_active']
+
+    db.session.commit()
+    log_event('webhook_updated', {'webhook_id': webhook_id}, user_id)
+
+    return jsonify({'message': 'Webhook updated', 'webhook': webhook.to_dict()})
+
+
+@app.route('/api/webhooks/<int:webhook_id>', methods=['DELETE'])
+@jwt_required()
+def delete_webhook(webhook_id):
+    """Delete a webhook"""
+    user_id = get_jwt_identity()
+    webhook = Webhook.query.filter_by(id=webhook_id, user_id=user_id).first()
+
+    if not webhook:
+        return jsonify({'error': 'Webhook not found'}), 404
+
+    # Delete deliveries first
+    WebhookDelivery.query.filter_by(webhook_id=webhook_id).delete()
+    db.session.delete(webhook)
+    db.session.commit()
+
+    log_event('webhook_deleted', {'webhook_id': webhook_id}, user_id)
+
+    return jsonify({'message': 'Webhook deleted'})
+
+
+@app.route('/api/webhooks/<int:webhook_id>/test', methods=['POST'])
+@jwt_required()
+@limiter.limit("10 per minute")
+def test_webhook(webhook_id):
+    """Send a test webhook"""
+    import requests as http_requests
+
+    user_id = get_jwt_identity()
+    webhook = Webhook.query.filter_by(id=webhook_id, user_id=user_id).first()
+
+    if not webhook:
+        return jsonify({'error': 'Webhook not found'}), 404
+
+    data = request.get_json() or {}
+    event_type = data.get('event_type', 'test.ping')
+    payload = data.get('payload', {
+        'id': f'evt_test_{secrets.token_hex(8)}',
+        'type': event_type,
+        'data': {'test': True},
+        'created_at': datetime.utcnow().isoformat()
+    })
+
+    # Send test webhook
+    start_time = datetime.utcnow()
+    try:
+        response = http_requests.post(
+            webhook.url,
+            json=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'X-BlackRoad-Signature': secrets.token_hex(32),
+                'X-BlackRoad-Event': event_type
+            },
+            timeout=10
+        )
+        response_time = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+
+        # Log delivery
+        delivery = WebhookDelivery(
+            webhook_id=webhook_id,
+            event_type=event_type,
+            payload=payload,
+            response_code=response.status_code,
+            response_body=response.text[:1000],
+            response_time_ms=response_time,
+            success=200 <= response.status_code < 300
+        )
+        db.session.add(delivery)
+
+        if delivery.success:
+            webhook.success_count += 1
+        else:
+            webhook.failure_count += 1
+        webhook.last_triggered_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'success': delivery.success,
+            'response_code': response.status_code,
+            'response_time_ms': response_time,
+            'response_body': response.text[:500]
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/webhooks/<int:webhook_id>/deliveries', methods=['GET'])
+@jwt_required()
+def get_webhook_deliveries(webhook_id):
+    """Get webhook delivery history"""
+    user_id = get_jwt_identity()
+    webhook = Webhook.query.filter_by(id=webhook_id, user_id=user_id).first()
+
+    if not webhook:
+        return jsonify({'error': 'Webhook not found'}), 404
+
+    deliveries = WebhookDelivery.query.filter_by(webhook_id=webhook_id)\
+        .order_by(WebhookDelivery.created_at.desc())\
+        .limit(50).all()
+
+    return jsonify({'deliveries': [d.to_dict() for d in deliveries]})
+
+
+# ===========================================
+# ANALYTICS ENDPOINTS
+# ===========================================
+
+@app.route('/api/analytics/overview', methods=['GET'])
+@jwt_required()
+def get_analytics_overview():
+    """Get analytics overview for dashboard"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    # Get date range from query params
+    days = request.args.get('days', 7, type=int)
+    start_date = datetime.utcnow() - timedelta(days=days)
+
+    # Count events
+    events = Event.query.filter(
+        Event.user_id == user_id,
+        Event.created_at >= start_date
+    ).all()
+
+    # Group by type
+    event_counts = {}
+    for event in events:
+        event_type = event.event_type
+        if event_type not in event_counts:
+            event_counts[event_type] = 0
+        event_counts[event_type] += 1
+
+    # Group by day
+    daily_counts = {}
+    for event in events:
+        day = event.created_at.strftime('%Y-%m-%d')
+        if day not in daily_counts:
+            daily_counts[day] = 0
+        daily_counts[day] += 1
+
+    return jsonify({
+        'total_events': len(events),
+        'event_counts': event_counts,
+        'daily_counts': daily_counts,
+        'api_calls': user.api_calls_count,
+        'deployments': user.deployments_count
+    })
+
+
+@app.route('/api/analytics/events', methods=['GET'])
+@jwt_required()
+def get_analytics_events():
+    """Get recent events for analytics"""
+    user_id = get_jwt_identity()
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+
+    events = Event.query.filter_by(user_id=user_id)\
+        .order_by(Event.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+
+    return jsonify({
+        'events': [e.to_dict() for e in events.items],
+        'total': events.total,
+        'pages': events.pages,
+        'current_page': page
+    })
+
+
+@app.route('/api/events/track', methods=['POST'])
+@limiter.limit("100 per minute")
+def track_event():
+    """Track anonymous event (for calculator, etc.)"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    event_type = data.get('event', 'unknown')
+    event_data = data.get('data', {})
+
+    log_event(event_type, event_data)
+
+    return jsonify({'success': True})
+
+
+# ===========================================
 # STRIPE WEBHOOK HANDLER
 # ===========================================
 
