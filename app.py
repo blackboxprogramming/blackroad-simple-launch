@@ -70,6 +70,49 @@ EMAIL_FROM_NAME = os.environ.get('EMAIL_FROM_NAME', 'BlackRoad OS')
 
 
 # ===========================================
+# SECURITY HEADERS MIDDLEWARE
+# ===========================================
+
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    # Prevent clickjacking
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # XSS protection
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Referrer policy
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    # Permissions policy (formerly feature policy)
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+
+    # Content Security Policy (relaxed for development, tighten in production)
+    if not app.debug:
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' https://api.stripe.com; "
+            "frame-src https://js.stripe.com https://hooks.stripe.com; "
+            "object-src 'none'; "
+            "base-uri 'self';"
+        )
+
+    # HSTS (only in production with HTTPS)
+    if not app.debug and os.environ.get('ENABLE_HSTS', 'false').lower() == 'true':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+
+    return response
+
+
+# ===========================================
 # DATABASE MODELS
 # ===========================================
 
@@ -806,6 +849,296 @@ def affiliate_signup():
         'message': 'Application submitted successfully!',
         'referral_code': referral_code
     }), 201
+
+
+# ===========================================
+# BILLING & SUBSCRIPTION ENDPOINTS
+# ===========================================
+
+@app.route('/api/billing/portal', methods=['POST'])
+@jwt_required()
+def create_billing_portal():
+    """Create a Stripe Customer Portal session"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Create Stripe customer if not exists
+    if not user.stripe_customer_id:
+        try:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=user.name,
+                metadata={'user_id': str(user.id)}
+            )
+            user.stripe_customer_id = customer.id
+            db.session.commit()
+        except stripe.error.StripeError as e:
+            return jsonify({'error': f'Failed to create customer: {str(e)}'}), 500
+
+    # Create billing portal session
+    try:
+        return_url = os.environ.get('APP_URL', 'https://app.blackroad.io') + '/settings.html#subscription'
+        session = stripe.billing_portal.Session.create(
+            customer=user.stripe_customer_id,
+            return_url=return_url
+        )
+        log_event('billing_portal_opened', {}, user.id)
+        return jsonify({'url': session.url})
+    except stripe.error.StripeError as e:
+        return jsonify({'error': f'Failed to create portal session: {str(e)}'}), 500
+
+
+@app.route('/api/billing/cancel', methods=['POST'])
+@jwt_required()
+def cancel_subscription():
+    """Cancel the user's subscription at period end"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not user.subscription_id:
+        return jsonify({'error': 'No active subscription'}), 400
+
+    try:
+        # Cancel at period end (not immediately)
+        subscription = stripe.Subscription.modify(
+            user.subscription_id,
+            cancel_at_period_end=True
+        )
+
+        user.subscription_status = 'canceling'
+        db.session.commit()
+
+        log_event('subscription_cancel_requested', {
+            'subscription_id': user.subscription_id,
+            'cancel_at': subscription.cancel_at
+        }, user.id)
+
+        # Send confirmation email
+        send_email(
+            user.email,
+            'Subscription Cancellation Confirmed - BlackRoad OS',
+            f'''
+            <h2>Subscription Cancellation Confirmed</h2>
+            <p>Hi {user.name or 'there'},</p>
+            <p>Your BlackRoad OS subscription has been scheduled for cancellation.</p>
+            <p>You'll continue to have access to all features until the end of your current billing period.</p>
+            <p>We're sorry to see you go! If you have any feedback on how we could improve, please reply to this email.</p>
+            <p>You can reactivate your subscription anytime from your account settings.</p>
+            <p>Best,<br>The BlackRoad Team</p>
+            ''',
+            user.name
+        )
+
+        return jsonify({
+            'message': 'Subscription scheduled for cancellation',
+            'cancel_at': subscription.cancel_at
+        })
+    except stripe.error.StripeError as e:
+        return jsonify({'error': f'Failed to cancel subscription: {str(e)}'}), 500
+
+
+@app.route('/api/billing/reactivate', methods=['POST'])
+@jwt_required()
+def reactivate_subscription():
+    """Reactivate a subscription that was scheduled for cancellation"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not user.subscription_id:
+        return jsonify({'error': 'No subscription to reactivate'}), 400
+
+    try:
+        subscription = stripe.Subscription.modify(
+            user.subscription_id,
+            cancel_at_period_end=False
+        )
+
+        user.subscription_status = 'active'
+        db.session.commit()
+
+        log_event('subscription_reactivated', {
+            'subscription_id': user.subscription_id
+        }, user.id)
+
+        return jsonify({
+            'message': 'Subscription reactivated successfully',
+            'subscription': {
+                'status': subscription.status,
+                'current_period_end': subscription.current_period_end
+            }
+        })
+    except stripe.error.StripeError as e:
+        return jsonify({'error': f'Failed to reactivate subscription: {str(e)}'}), 500
+
+
+@app.route('/api/billing/invoices', methods=['GET'])
+@jwt_required()
+def get_invoices():
+    """Get user's invoice history"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not user.stripe_customer_id:
+        return jsonify({'invoices': []})
+
+    try:
+        invoices = stripe.Invoice.list(
+            customer=user.stripe_customer_id,
+            limit=20
+        )
+
+        invoice_list = [{
+            'id': inv.id,
+            'number': inv.number,
+            'amount': inv.amount_paid / 100,
+            'currency': inv.currency.upper(),
+            'status': inv.status,
+            'date': inv.created,
+            'pdf_url': inv.invoice_pdf,
+            'hosted_url': inv.hosted_invoice_url
+        } for inv in invoices.data]
+
+        return jsonify({'invoices': invoice_list})
+    except stripe.error.StripeError as e:
+        return jsonify({'error': f'Failed to fetch invoices: {str(e)}'}), 500
+
+
+@app.route('/api/billing/subscription', methods=['GET'])
+@jwt_required()
+def get_subscription():
+    """Get current subscription details"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    subscription_data = {
+        'status': user.subscription_status,
+        'tier': user.subscription_tier,
+        'is_founding_member': user.is_founding_member
+    }
+
+    if user.subscription_id:
+        try:
+            subscription = stripe.Subscription.retrieve(user.subscription_id)
+            subscription_data.update({
+                'current_period_end': subscription.current_period_end,
+                'cancel_at_period_end': subscription.cancel_at_period_end,
+                'cancel_at': subscription.cancel_at
+            })
+        except stripe.error.StripeError:
+            pass
+
+    return jsonify({'subscription': subscription_data})
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    """Change password for authenticated user"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    current_password = data.get('current_password', '')
+    new_password = data.get('new_password', '')
+
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password are required'}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+
+    if len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    log_event('password_changed', {}, user.id)
+
+    send_email(
+        user.email,
+        'Password Changed - BlackRoad OS',
+        f'''
+        <h2>Password Changed</h2>
+        <p>Hi {user.name or 'there'},</p>
+        <p>Your BlackRoad OS password was just changed.</p>
+        <p>If you didn't make this change, please contact us immediately.</p>
+        <p>Best,<br>The BlackRoad Team</p>
+        ''',
+        user.name
+    )
+
+    return jsonify({'message': 'Password changed successfully'})
+
+
+@app.route('/api/auth/account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    """Delete user account and all associated data"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Cancel any active subscription first
+    if user.subscription_id:
+        try:
+            stripe.Subscription.delete(user.subscription_id)
+        except stripe.error.StripeError:
+            pass
+
+    # Delete user events
+    Event.query.filter_by(user_id=user.id).delete()
+
+    # Store email for confirmation
+    email = user.email
+    name = user.name
+
+    # Delete user
+    db.session.delete(user)
+    db.session.commit()
+
+    log_event('account_deleted', {'email': email})
+
+    # Send farewell email
+    send_email(
+        email,
+        'Account Deleted - BlackRoad OS',
+        f'''
+        <h2>Account Deleted</h2>
+        <p>Hi {name or 'there'},</p>
+        <p>Your BlackRoad OS account has been permanently deleted.</p>
+        <p>All your data has been removed from our systems.</p>
+        <p>We're sorry to see you go. If you ever want to come back, you're always welcome!</p>
+        <p>Best,<br>The BlackRoad Team</p>
+        ''',
+        name
+    )
+
+    return jsonify({'message': 'Account deleted successfully'})
 
 
 # ===========================================

@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to BlackRoad OS - Let's Get Started</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .onboarding-container {
+            max-width: 700px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .onboarding-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 40px;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+        }
+
+        .step.completed .step-circle {
+            background: #10b981;
+            border-color: transparent;
+        }
+
+        .step-label {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .step.active .step-label {
+            color: #e2e8f0;
+        }
+
+        /* Step Content */
+        .step-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .step-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .step-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .step-header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .option-card {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-card:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .option-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .option-card input {
+            display: none;
+        }
+
+        .option-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .option-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .option-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        /* Checklist */
+        .checklist {
+            margin-bottom: 25px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .checklist-item.checked {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .checklist-checkbox {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .checklist-item.checked .checklist-checkbox {
+            background: #10b981;
+            border-color: #10b981;
+        }
+
+        .checklist-item.checked .checklist-checkbox::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Feature Preview */
+        .feature-preview {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .feature-preview img {
+            width: 100%;
+            height: auto;
+        }
+
+        .feature-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .feature-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .feature-tab:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .feature-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .feature-content {
+            padding: 25px;
+            min-height: 150px;
+        }
+
+        /* Final Step */
+        .success-animation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            font-size: 3rem;
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .quick-action {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #e2e8f0;
+        }
+
+        .quick-action:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .quick-action-icon {
+            font-size: 1.5rem;
+        }
+
+        .quick-action-text h4 {
+            margin-bottom: 3px;
+        }
+
+        .quick-action-text p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        /* Skip link */
+        .skip-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .skip-link a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .skip-link a:hover {
+            color: #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .options-grid,
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .onboarding-card {
+                padding: 30px 20px;
+            }
+
+            .step-label {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-container">
+        <div class="onboarding-card">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-steps">
+                    <div class="progress-line" id="progress-line" style="width: 0%;"></div>
+                    <div class="step active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <span class="step-label">Welcome</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-circle">2</div>
+                        <span class="step-label">Your Goals</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-circle">3</div>
+                        <span class="step-label">Setup</span>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-circle">4</div>
+                        <span class="step-label">Ready!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Welcome -->
+            <div class="step-content active" data-step="1">
+                <div class="step-header">
+                    <div class="step-icon">👋</div>
+                    <h2>Welcome to BlackRoad OS!</h2>
+                    <p>Let's personalize your experience in just 60 seconds</p>
+                </div>
+
+                <div class="form-group">
+                    <label>What should we call you?</label>
+                    <input type="text" id="user-name" placeholder="Your first name">
+                </div>
+
+                <div class="form-group">
+                    <label>What's your role?</label>
+                    <div class="options-grid">
+                        <label class="option-card">
+                            <input type="radio" name="role" value="founder">
+                            <div class="option-icon">🚀</div>
+                            <div class="option-title">Founder/CEO</div>
+                            <div class="option-desc">Building a startup</div>
+                        </label>
+                        <label class="option-card">
+                            <input type="radio" name="role" value="developer">
+                            <div class="option-icon">💻</div>
+                            <div class="option-title">Developer</div>
+                            <div class="option-desc">Writing code daily</div>
+                        </label>
+                        <label class="option-card">
+                            <input type="radio" name="role" value="designer">
+                            <div class="option-icon">🎨</div>
+                            <div class="option-title">Designer</div>
+                            <div class="option-desc">Creating products</div>
+                        </label>
+                        <label class="option-card">
+                            <input type="radio" name="role" value="other">
+                            <div class="option-icon">✨</div>
+                            <div class="option-title">Other</div>
+                            <div class="option-desc">Something else</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+                </div>
+
+                <div class="skip-link">
+                    <a href="/dashboard.html">Skip onboarding →</a>
+                </div>
+            </div>
+
+            <!-- Step 2: Goals -->
+            <div class="step-content" data-step="2">
+                <div class="step-header">
+                    <div class="step-icon">🎯</div>
+                    <h2>What are your goals?</h2>
+                    <p>We'll customize your dashboard based on your needs</p>
+                </div>
+
+                <div class="checklist">
+                    <div class="checklist-item" onclick="toggleCheck(this)">
+                        <div class="checklist-checkbox"></div>
+                        <div>
+                            <strong>Ship products faster</strong>
+                            <p style="font-size: 0.85rem; color: #64748b;">Deploy instantly with one-click</p>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleCheck(this)">
+                        <div class="checklist-checkbox"></div>
+                        <div>
+                            <strong>Reduce tool costs</strong>
+                            <p style="font-size: 0.85rem; color: #64748b;">Replace multiple subscriptions</p>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleCheck(this)">
+                        <div class="checklist-checkbox"></div>
+                        <div>
+                            <strong>Build with AI</strong>
+                            <p style="font-size: 0.85rem; color: #64748b;">AI-powered development workflows</p>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleCheck(this)">
+                        <div class="checklist-checkbox"></div>
+                        <div>
+                            <strong>Collaborate with team</strong>
+                            <p style="font-size: 0.85rem; color: #64748b;">Real-time collaboration tools</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Quick Setup -->
+            <div class="step-content" data-step="3">
+                <div class="step-header">
+                    <div class="step-icon">⚡</div>
+                    <h2>Quick Setup</h2>
+                    <p>Let's configure the essentials</p>
+                </div>
+
+                <div class="feature-preview">
+                    <div class="feature-tabs">
+                        <div class="feature-tab active" data-feature="deploy">Deploy</div>
+                        <div class="feature-tab" data-feature="ai">AI Tools</div>
+                        <div class="feature-tab" data-feature="integrate">Integrate</div>
+                    </div>
+                    <div class="feature-content">
+                        <div id="feature-deploy">
+                            <h3 style="margin-bottom: 15px;">🚀 Instant Deployment</h3>
+                            <p style="color: #94a3b8; margin-bottom: 15px;">Connect your GitHub repo and deploy in seconds. We handle infrastructure so you can focus on building.</p>
+                            <button class="btn btn-secondary" style="padding: 10px 20px;">Connect GitHub</button>
+                        </div>
+                        <div id="feature-ai" style="display: none;">
+                            <h3 style="margin-bottom: 15px;">🤖 AI-Powered Development</h3>
+                            <p style="color: #94a3b8; margin-bottom: 15px;">Use AI to generate code, fix bugs, and accelerate your workflow. Already included in your plan.</p>
+                            <button class="btn btn-secondary" style="padding: 10px 20px;">Try AI Assistant</button>
+                        </div>
+                        <div id="feature-integrate" style="display: none;">
+                            <h3 style="margin-bottom: 15px;">🔗 Integrations</h3>
+                            <p style="color: #94a3b8; margin-bottom: 15px;">Connect your favorite tools: Slack, Discord, GitHub, and more.</p>
+                            <button class="btn btn-secondary" style="padding: 10px 20px;">Browse Integrations</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Enable notifications?</label>
+                    <select id="notifications">
+                        <option value="all">All notifications</option>
+                        <option value="important">Important only</option>
+                        <option value="none">None (I'll check manually)</option>
+                    </select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="completeOnboarding()">Complete Setup →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: All Done -->
+            <div class="step-content" data-step="4">
+                <div class="success-animation">
+                    <div class="success-icon">🎉</div>
+                    <h2>You're all set, <span id="final-name">friend</span>!</h2>
+                    <p style="color: #94a3b8; margin-top: 10px;">Your workspace is ready. Here's what you can do next:</p>
+                </div>
+
+                <div class="quick-actions">
+                    <a href="/dashboard.html" class="quick-action">
+                        <div class="quick-action-icon">📊</div>
+                        <div class="quick-action-text">
+                            <h4>View Dashboard</h4>
+                            <p>See your workspace</p>
+                        </div>
+                    </a>
+                    <a href="/docs.html" class="quick-action">
+                        <div class="quick-action-icon">📚</div>
+                        <div class="quick-action-text">
+                            <h4>Read Docs</h4>
+                            <p>Learn the platform</p>
+                        </div>
+                    </a>
+                    <a href="#" class="quick-action" id="create-project">
+                        <div class="quick-action-icon">➕</div>
+                        <div class="quick-action-text">
+                            <h4>Create Project</h4>
+                            <p>Start building</p>
+                        </div>
+                    </a>
+                    <a href="/settings.html" class="quick-action">
+                        <div class="quick-action-icon">⚙️</div>
+                        <div class="quick-action-text">
+                            <h4>Settings</h4>
+                            <p>Customize more</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="btn-group" style="margin-top: 30px;">
+                    <a href="/dashboard.html" class="btn btn-primary" style="text-align: center; text-decoration: none;">Go to Dashboard →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>window.BLACKROAD_API_URL = 'https://api.blackroad.io';</script>
+    <script src="/js/blackroad-sdk.js"></script>
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        // Option card selection
+        document.querySelectorAll('.option-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+            });
+        });
+
+        // Feature tabs
+        document.querySelectorAll('.feature-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.feature-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const feature = tab.dataset.feature;
+                document.querySelectorAll('.feature-content > div').forEach(div => div.style.display = 'none');
+                document.getElementById('feature-' + feature).style.display = 'block';
+            });
+        });
+
+        function toggleCheck(item) {
+            item.classList.toggle('checked');
+        }
+
+        function updateProgress() {
+            const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progress-line').style.width = progressPercent + '%';
+
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            document.querySelectorAll('.step-content').forEach((content, index) => {
+                content.classList.toggle('active', index + 1 === currentStep);
+            });
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateProgress();
+
+                // Track step progress
+                if (window.BlackRoadSDK) {
+                    BlackRoadSDK.track('onboarding_step_completed', { step: currentStep - 1 });
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+
+        function completeOnboarding() {
+            const userName = document.getElementById('user-name').value || 'friend';
+            const role = document.querySelector('input[name="role"]:checked')?.value || 'unknown';
+            const goals = Array.from(document.querySelectorAll('.checklist-item.checked'))
+                .map(item => item.querySelector('strong').textContent);
+            const notifications = document.getElementById('notifications').value;
+
+            // Update final name
+            document.getElementById('final-name').textContent = userName;
+
+            // Save preferences
+            if (window.BlackRoadSDK) {
+                BlackRoadSDK.api.put('/auth/update', {
+                    name: userName,
+                    preferences: {
+                        role: role,
+                        goals: goals,
+                        notifications: notifications,
+                        onboarding_completed: true
+                    }
+                }).catch(() => {});
+
+                BlackRoadSDK.track('onboarding_completed', {
+                    role: role,
+                    goals: goals,
+                    notifications: notifications
+                });
+            }
+
+            // Mark onboarding complete in localStorage
+            localStorage.setItem('onboarding_completed', 'true');
+
+            // Go to final step
+            currentStep = 4;
+            updateProgress();
+        }
+
+        // Check if user is logged in
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if onboarding already completed
+            if (localStorage.getItem('onboarding_completed') === 'true') {
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
+            // Try to pre-fill name if logged in
+            if (window.BlackRoadSDK) {
+                try {
+                    const user = await BlackRoadSDK.api.get('/auth/me');
+                    if (user && user.name) {
+                        document.getElementById('user-name').value = user.name;
+                    }
+                } catch (e) {
+                    // Not logged in, redirect to login
+                    // window.location.href = '/login.html?redirect=/onboarding.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
