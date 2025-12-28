@@ -1,0 +1,92 @@
+# BlackRoad OS - Docker Compose Configuration
+version: '3.8'
+
+services:
+  # Main API Server
+  api:
+    build: .
+    container_name: blackroad-api
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://blackroad:blackroad@db:5432/blackroad
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - FLASK_ENV=production
+      - APP_URL=https://app.blackroad.io
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - blackroad-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: blackroad-db
+    environment:
+      - POSTGRES_USER=blackroad
+      - POSTGRES_PASSWORD=blackroad
+      - POSTGRES_DB=blackroad
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - blackroad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blackroad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: blackroad-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - blackroad-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Nginx for frontend + reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: blackroad-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - .:/var/www/html:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - blackroad-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  blackroad-network:
+    driver: bridge

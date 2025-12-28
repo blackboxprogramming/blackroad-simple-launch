@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - BlackRoad OS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Menlo, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        @media (max-width: 992px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 30px 20px;
+            position: fixed;
+            width: 280px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            margin-bottom: 30px;
+        }
+        .sidebar-logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-subtitle {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        .nav-section {
+            margin-bottom: 25px;
+        }
+        .nav-section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .nav-item {
+            display: block;
+            padding: 8px 12px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #e2e8f0;
+        }
+        .nav-item.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 280px;
+            padding: 40px 60px;
+            max-width: 900px;
+        }
+        @media (max-width: 992px) {
+            .main {
+                margin-left: 0;
+                padding: 30px 20px;
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 50px 0 20px;
+            padding-top: 30px;
+            border-top: 1px solid #334155;
+        }
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 30px 0 15px;
+            color: #10b981;
+        }
+        p {
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', Menlo, monospace;
+            font-size: 0.9rem;
+        }
+        code {
+            font-family: 'Fira Code', Menlo, monospace;
+            background: rgba(102, 126, 234, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Endpoint Cards */
+        .endpoint {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .endpoint-header {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #334155;
+        }
+        .method {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        .method.get { background: #10b981; color: white; }
+        .method.post { background: #3b82f6; color: white; }
+        .method.put { background: #f59e0b; color: white; }
+        .method.delete { background: #ef4444; color: white; }
+        .endpoint-path {
+            font-family: monospace;
+            color: #e2e8f0;
+        }
+        .endpoint-body {
+            padding: 20px;
+        }
+        .endpoint-desc {
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+        }
+        th {
+            background: rgba(102, 126, 234, 0.1);
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        td {
+            font-size: 0.9rem;
+        }
+        td code {
+            font-size: 0.85rem;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-required {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .badge-optional {
+            background: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+        }
+        .badge-auth {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            color: #93c5fd;
+        }
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: #fcd34d;
+        }
+
+        /* Syntax highlighting */
+        .string { color: #a5d6ff; }
+        .number { color: #79c0ff; }
+        .keyword { color: #ff7b72; }
+        .comment { color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">BlackRoad OS</div>
+                <div class="sidebar-subtitle">API Documentation</div>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Getting Started</div>
+                <a href="#introduction" class="nav-item active">Introduction</a>
+                <a href="#authentication" class="nav-item">Authentication</a>
+                <a href="#errors" class="nav-item">Error Handling</a>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Endpoints</div>
+                <a href="#auth-endpoints" class="nav-item">Auth</a>
+                <a href="#dashboard-endpoints" class="nav-item">Dashboard</a>
+                <a href="#forms-endpoints" class="nav-item">Forms</a>
+                <a href="#admin-endpoints" class="nav-item">Admin</a>
+                <a href="#webhooks" class="nav-item">Webhooks</a>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Resources</div>
+                <a href="/dashboard.html" class="nav-item">Dashboard</a>
+                <a href="/" class="nav-item">Home</a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <h1 id="introduction">API Documentation</h1>
+            <p>Welcome to the BlackRoad OS API. This API allows you to manage users, subscriptions, and integrate with our platform.</p>
+
+            <div class="alert alert-info">
+                <strong>Base URL:</strong> <code>https://api.blackroad.io</code>
+            </div>
+
+            <h2 id="authentication">Authentication</h2>
+            <p>The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:</p>
+
+            <pre><code>Authorization: Bearer eyJhbGciOiJIUzI1NiIs...</code></pre>
+
+            <h3>Getting a Token</h3>
+            <p>You can obtain a token by registering or logging in:</p>
+
+            <pre><code><span class="comment">// Register a new user</span>
+POST /api/auth/register
+{
+  <span class="string">"email"</span>: <span class="string">"user@example.com"</span>,
+  <span class="string">"password"</span>: <span class="string">"yourpassword"</span>,
+  <span class="string">"name"</span>: <span class="string">"Your Name"</span>
+}
+
+<span class="comment">// Login</span>
+POST /api/auth/login
+{
+  <span class="string">"email"</span>: <span class="string">"user@example.com"</span>,
+  <span class="string">"password"</span>: <span class="string">"yourpassword"</span>
+}</code></pre>
+
+            <h3>Token Refresh</h3>
+            <p>Access tokens expire after 1 hour. Use the refresh token to get a new access token:</p>
+
+            <pre><code>POST /api/auth/refresh
+Authorization: Bearer &lt;refresh_token&gt;</code></pre>
+
+            <h2 id="errors">Error Handling</h2>
+            <p>The API returns standard HTTP status codes. Error responses include a message:</p>
+
+            <pre><code>{
+  <span class="string">"error"</span>: <span class="string">"Description of what went wrong"</span>
+}</code></pre>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Meaning</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>200</code></td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td><code>201</code></td>
+                        <td>Created</td>
+                    </tr>
+                    <tr>
+                        <td><code>400</code></td>
+                        <td>Bad Request - Invalid parameters</td>
+                    </tr>
+                    <tr>
+                        <td><code>401</code></td>
+                        <td>Unauthorized - Invalid or missing token</td>
+                    </tr>
+                    <tr>
+                        <td><code>403</code></td>
+                        <td>Forbidden - Insufficient permissions</td>
+                    </tr>
+                    <tr>
+                        <td><code>404</code></td>
+                        <td>Not Found</td>
+                    </tr>
+                    <tr>
+                        <td><code>429</code></td>
+                        <td>Rate Limit Exceeded</td>
+                    </tr>
+                    <tr>
+                        <td><code>500</code></td>
+                        <td>Server Error</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 id="auth-endpoints">Auth Endpoints</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/register</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Create a new user account.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>password</code></td><td>string (min 8 chars)</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>name</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/login</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Login to an existing account.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/auth/me</span>
+                    <span class="badge badge-auth">Auth Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get the current authenticated user's profile.</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/forgot-password</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Request a password reset email.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/reset-password</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Reset password using token from email.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>token</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>password</code></td><td>string (min 8 chars)</td><td><span class="badge badge-required">Required</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2 id="dashboard-endpoints">Dashboard Endpoints</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/dashboard/stats</span>
+                    <span class="badge badge-auth">Auth Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get dashboard statistics for the current user.</p>
+                    <pre><code><span class="comment">// Response</span>
+{
+  <span class="string">"user"</span>: { ... },
+  <span class="string">"stats"</span>: {
+    <span class="string">"api_calls"</span>: <span class="number">150</span>,
+    <span class="string">"deployments"</span>: <span class="number">12</span>,
+    <span class="string">"days_remaining"</span>: <span class="number">10</span>,
+    <span class="string">"subscription_active"</span>: <span class="keyword">true</span>
+  },
+  <span class="string">"recent_activity"</span>: [ ... ]
+}</code></pre>
+                </div>
+            </div>
+
+            <h2 id="forms-endpoints">Form Endpoints</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/newsletter/subscribe</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Subscribe to the newsletter.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>name</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                            <tr><td><code>source</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/contact</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Submit a contact form.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>name</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>message</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>company</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                            <tr><td><code>type</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/affiliate/signup</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Sign up for the affiliate program.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Required</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>name</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td></tr>
+                            <tr><td><code>website</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                            <tr><td><code>social_links</code></td><td>object</td><td><span class="badge badge-optional">Optional</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2 id="admin-endpoints">Admin Endpoints</h2>
+            <div class="alert alert-warning">
+                <strong>Note:</strong> Admin endpoints require the <code>is_admin</code> flag on the user account.
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/admin/stats</span>
+                    <span class="badge badge-auth">Admin Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get platform-wide statistics including user counts and revenue.</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/admin/users</span>
+                    <span class="badge badge-auth">Admin Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get paginated list of all users.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>page</code></td><td>integer</td><td>1</td></tr>
+                            <tr><td><code>per_page</code></td><td>integer</td><td>20</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/admin/contacts</span>
+                    <span class="badge badge-auth">Admin Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get contact form submissions.</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/admin/events</span>
+                    <span class="badge badge-auth">Admin Required</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="endpoint-desc">Get system event log.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>limit</code></td><td>integer</td><td>100</td></tr>
+                            <tr><td><code>type</code></td><td>string</td><td>all</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2 id="webhooks">Stripe Webhooks</h2>
+            <p>Configure your Stripe webhook to point to:</p>
+            <pre><code>POST https://api.blackroad.io/webhook/stripe</code></pre>
+
+            <p>Supported events:</p>
+            <ul style="color: #94a3b8; padding-left: 20px; line-height: 2;">
+                <li><code>checkout.session.completed</code></li>
+                <li><code>customer.subscription.created</code></li>
+                <li><code>customer.subscription.updated</code></li>
+                <li><code>customer.subscription.deleted</code></li>
+                <li><code>invoice.payment_succeeded</code></li>
+                <li><code>invoice.payment_failed</code></li>
+            </ul>
+
+            <h2>Rate Limits</h2>
+            <p>The API has the following rate limits:</p>
+            <table>
+                <thead>
+                    <tr><th>Scope</th><th>Limit</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>General</td><td>200 requests/day, 50 requests/hour</td></tr>
+                    <tr><td>Auth endpoints</td><td>5-10 requests/minute</td></tr>
+                    <tr><td>Form submissions</td><td>3-5 requests/minute</td></tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 80px; padding-top: 40px; border-top: 1px solid #334155; color: #64748b; text-align: center;">
+                <p>BlackRoad OS API v2.0 • <a href="mailto:blackroad.systems@gmail.com" style="color: #667eea;">Contact Support</a></p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.getAttribute('href').startsWith('#')) {
+                    e.preventDefault();
+                    const target = document.querySelector(link.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+
+                    // Update active state
+                    document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

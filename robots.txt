@@ -1,14 +1,45 @@
+# BlackRoad OS - robots.txt
+# https://blackroad.io
+
 User-agent: *
 Allow: /
 
-# Sitemaps
-Sitemap: https://app.blackroad.io/sitemap.xml
+# Sitemap location
+Sitemap: https://blackroad.io/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /webhook/
+Disallow: /*.json$
+
+# Disallow authentication pages from indexing
+Disallow: /login.html
+Disallow: /reset-password.html
+Disallow: /settings.html
+Disallow: /dashboard.html
 
 # Disallow staging/test pages
 Disallow: /test/
 Disallow: /staging/
 
-# Allow all major search engines
+# Allow marketing pages
+Allow: /
+Allow: /pricing.html
+Allow: /features.html
+Allow: /affiliates.html
+Allow: /faq.html
+Allow: /contact.html
+Allow: /newsletter.html
+Allow: /about.html
+Allow: /careers.html
+Allow: /testimonials.html
+Allow: /docs.html
+
+# Crawl delay for polite crawling
+Crawl-delay: 1
+
+# Specific bot rules
 User-agent: Googlebot
 Allow: /
 
@@ -20,6 +51,3 @@ Allow: /
 
 User-agent: DuckDuckBot
 Allow: /
-
-# Crawl-delay for politeness
-Crawl-delay: 1

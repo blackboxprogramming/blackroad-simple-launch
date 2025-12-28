@@ -298,7 +298,7 @@
                     </div>
                 </div>
 
-                <a href="https://buy.stripe.com/9B6cN4fOr6bYbvi8xD" class="cta-button">
+                <a href="https://buy.stripe.com/9B6cN4fOr6bYbvi8xD" class="cta-button" id="calculator-cta" onclick="trackCalculatorConversion()">
                     Get 50% Off Forever - Save <span id="cta-savings">$0</span>/yr
                 </a>
 
@@ -391,6 +391,49 @@
 
         // Initial calculation
         updateCalculations();
+
+        // Track calculator conversion
+        function trackCalculatorConversion() {
+            const teamSize = parseInt(document.getElementById('team-size').value);
+            const contextSwitching = parseInt(document.getElementById('context-switching').value);
+            const currentCost = document.getElementById('current-cost').textContent;
+            const totalSavings = document.getElementById('total-savings').textContent;
+            const annualSavings = document.getElementById('annual-savings').textContent;
+
+            // Track with BlackRoad SDK if available
+            if (window.BlackRoadSDK) {
+                BlackRoadSDK.track('calculator_cta_clicked', {
+                    team_size: teamSize,
+                    context_switching_hours: contextSwitching,
+                    current_monthly_cost: currentCost,
+                    monthly_savings: totalSavings,
+                    annual_savings: annualSavings,
+                    tools_selected: getSelectedTools()
+                });
+            }
+
+            // Also track via API if user isn't using SDK
+            fetch('/api/events/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'calculator_conversion',
+                    data: {
+                        team_size: teamSize,
+                        annual_savings: annualSavings
+                    }
+                })
+            }).catch(() => {}); // Silent fail for tracking
+        }
+
+        function getSelectedTools() {
+            const tools = ['tool-vercel', 'tool-github', 'tool-linear', 'tool-slack', 'tool-notion', 'tool-datadog', 'tool-sentry'];
+            return tools.filter(id => document.getElementById(id)?.checked);
+        }
     </script>
+
+    <!-- BlackRoad SDK for tracking -->
+    <script>window.BLACKROAD_API_URL = 'https://api.blackroad.io';</script>
+    <script src="/js/blackroad-sdk.js"></script>
 </body>
 </html>

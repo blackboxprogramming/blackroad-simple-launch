@@ -178,25 +178,25 @@
             <div class="contact-form">
                 <h2>Send Us a Message</h2>
 
-                <form id="contact-form" onsubmit="handleSubmit(event)">
+                <form id="contact-form" data-form="contact" data-type="general">
                     <div class="form-group">
                         <label for="name">Your Name *</label>
-                        <input type="text" id="name" required>
+                        <input type="text" id="name" name="name" required>
                     </div>
 
                     <div class="form-group">
                         <label for="email">Email Address *</label>
-                        <input type="email" id="email" required>
+                        <input type="email" id="email" name="email" required>
                     </div>
 
                     <div class="form-group">
                         <label for="company">Company Name</label>
-                        <input type="text" id="company">
+                        <input type="text" id="company" name="company">
                     </div>
 
                     <div class="form-group">
                         <label for="inquiry-type">I'm interested in: *</label>
-                        <select id="inquiry-type" required>
+                        <select id="inquiry-type" name="inquiry-type" required>
                             <option value="">Select an option...</option>
                             <option value="demo">Booking a demo</option>
                             <option value="pricing">Custom pricing quote</option>
@@ -210,7 +210,7 @@
 
                     <div class="form-group">
                         <label for="message">Message *</label>
-                        <textarea id="message" required placeholder="Tell us about your project and how we can help..."></textarea>
+                        <textarea id="message" name="message" required placeholder="Tell us about your project and how we can help..."></textarea>
                     </div>
 
                     <button type="submit" class="submit-btn">Send Message →</button>
@@ -299,39 +299,8 @@
         </div>
     </div>
 
-    <script>
-        function handleSubmit(event) {
-            event.preventDefault();
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const company = document.getElementById('company').value;
-            const inquiryType = document.getElementById('inquiry-type').value;
-            const message = document.getElementById('message').value;
-
-            // In production, send to your backend/email service
-            console.log('Contact form submitted:', {
-                name, email, company, inquiryType, message
-            });
-
-            // Show success message
-            const form = document.querySelector('.contact-form');
-            form.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <div style="font-size: 5rem; margin-bottom: 20px;">✅</div>
-                    <h2 style="color: #10b981; margin-bottom: 15px;">Message Sent!</h2>
-                    <p style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 30px;">
-                        Thanks for reaching out! We'll get back to you within 4 hours.
-                    </p>
-                    <p style="opacity: 0.8;">
-                        We sent a confirmation to <strong>${email}</strong>
-                    </p>
-                    <a href="index.html" style="display: inline-block; margin-top: 30px; background: #10b981; color: white; padding: 15px 40px; border-radius: 50px; text-decoration: none; font-weight: 600;">
-                        Back to Home
-                    </a>
-                </div>
-            `;
-        }
-    </script>
+    <!-- Configure API URL -->
+    <script>window.BLACKROAD_API_URL = 'https://api.blackroad.io';</script>
+    <script src="/js/blackroad-sdk.js"></script>
 </body>
 </html>

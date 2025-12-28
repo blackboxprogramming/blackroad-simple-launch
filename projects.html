@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - BlackRoad OS</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .dashboard-container { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 23, 42, 0.8);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover { background: rgba(102, 126, 234, 0.1); color: #e2e8f0; }
+        .nav-item.active { background: rgba(102, 126, 234, 0.2); color: #667eea; }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 { font-size: 2rem; }
+
+        .header-actions { display: flex; gap: 15px; }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e2e8f0;
+        }
+
+        /* Search & Filter */
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-btn {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 10px;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        /* Project Grid */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .project-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .project-card:hover {
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .project-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .project-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-live {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-building {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-stopped {
+            background: rgba(100, 116, 139, 0.3);
+            color: #94a3b8;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-live .status-dot { animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .project-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .project-url {
+            color: #64748b;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .project-url a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .project-url a:hover { text-decoration: underline; }
+
+        .project-meta {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .project-stat {
+            text-align: center;
+        }
+
+        .project-stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .project-stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .project-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .project-actions button:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .project-actions button.primary {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .project-actions button.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Tech Stack Tags */
+        .tech-stack {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .tech-tag {
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        /* Deployment History */
+        .deployments-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 { font-size: 1.3rem; }
+
+        .deployment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .deployment-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+        }
+
+        .deployment-status {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .deployment-status.success { background: rgba(16, 185, 129, 0.2); }
+        .deployment-status.failed { background: rgba(239, 68, 68, 0.2); }
+        .deployment-status.building { background: rgba(245, 158, 11, 0.2); animation: pulse 1s infinite; }
+
+        .deployment-info { flex: 1; }
+        .deployment-commit { font-weight: 600; margin-bottom: 3px; }
+        .deployment-meta { font-size: 0.85rem; color: #64748b; }
+
+        .deployment-actions { text-align: right; }
+        .deployment-time { font-size: 0.85rem; color: #64748b; margin-bottom: 5px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 35px;
+            width: 100%;
+            max-width: 600px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal h2 { margin-bottom: 25px; }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: #e2e8f0;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .modal-actions button { flex: 1; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+            background: rgba(30, 41, 59, 0.3);
+            border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: 20px;
+        }
+
+        .empty-icon { font-size: 4rem; margin-bottom: 20px; }
+        .empty-title { font-size: 1.5rem; margin-bottom: 10px; }
+        .empty-desc { color: #64748b; margin-bottom: 25px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .projects-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">BlackRoad OS</div>
+            <nav>
+                <a href="/dashboard.html" class="nav-item">📊 Dashboard</a>
+                <a href="/analytics.html" class="nav-item">📈 Analytics</a>
+                <a href="/team.html" class="nav-item">👥 Team</a>
+                <a href="/webhooks.html" class="nav-item">🔗 Webhooks</a>
+                <a href="/projects.html" class="nav-item active">📁 Projects</a>
+                <a href="/settings.html" class="nav-item">⚙️ Settings</a>
+                <a href="/docs.html" class="nav-item">📚 Docs</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Projects</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">Import from GitHub</button>
+                    <button class="btn btn-primary" data-action="create-project" onclick="openCreateModal()">
+                        + New Project
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" class="search-input" placeholder="Search projects..." id="project-search">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="live">Live</button>
+                <button class="filter-btn" data-filter="building">Building</button>
+                <button class="filter-btn" data-filter="failed">Failed</button>
+            </div>
+
+            <div class="projects-grid" id="projects-grid">
+                <!-- Project 1 -->
+                <div class="project-card" data-status="live">
+                    <div class="project-header">
+                        <div class="project-icon">🚀</div>
+                        <span class="project-status status-live">
+                            <span class="status-dot"></span>
+                            Live
+                        </span>
+                    </div>
+                    <div class="project-name">my-saas-app</div>
+                    <div class="project-url">
+                        🔗 <a href="#" target="_blank">my-saas-app.blackroad.io</a>
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Next.js</span>
+                        <span class="tech-tag">TypeScript</span>
+                        <span class="tech-tag">Tailwind</span>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-stat">
+                            <div class="project-stat-value">156</div>
+                            <div class="project-stat-label">Deployments</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">99.9%</div>
+                            <div class="project-stat-label">Uptime</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">2.4s</div>
+                            <div class="project-stat-label">Avg Build</div>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="primary" onclick="deployProject('my-saas-app')">Deploy</button>
+                        <button onclick="viewProject('my-saas-app')">View</button>
+                        <button onclick="settingsProject('my-saas-app')">Settings</button>
+                    </div>
+                </div>
+
+                <!-- Project 2 -->
+                <div class="project-card" data-status="live">
+                    <div class="project-header">
+                        <div class="project-icon" style="background: linear-gradient(135deg, #10b981, #059669);">📱</div>
+                        <span class="project-status status-live">
+                            <span class="status-dot"></span>
+                            Live
+                        </span>
+                    </div>
+                    <div class="project-name">mobile-api</div>
+                    <div class="project-url">
+                        🔗 <a href="#" target="_blank">api.myapp.io</a>
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Python</span>
+                        <span class="tech-tag">FastAPI</span>
+                        <span class="tech-tag">PostgreSQL</span>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-stat">
+                            <div class="project-stat-value">89</div>
+                            <div class="project-stat-label">Deployments</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">100%</div>
+                            <div class="project-stat-label">Uptime</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">1.8s</div>
+                            <div class="project-stat-label">Avg Build</div>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="primary" onclick="deployProject('mobile-api')">Deploy</button>
+                        <button onclick="viewProject('mobile-api')">View</button>
+                        <button onclick="settingsProject('mobile-api')">Settings</button>
+                    </div>
+                </div>
+
+                <!-- Project 3 - Building -->
+                <div class="project-card" data-status="building">
+                    <div class="project-header">
+                        <div class="project-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                        <span class="project-status status-building">
+                            <span class="status-dot"></span>
+                            Building
+                        </span>
+                    </div>
+                    <div class="project-name">landing-page-v2</div>
+                    <div class="project-url">
+                        🔗 <a href="#" target="_blank">preview-abc123.blackroad.io</a>
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Astro</span>
+                        <span class="tech-tag">React</span>
+                        <span class="tech-tag">MDX</span>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-stat">
+                            <div class="project-stat-value">12</div>
+                            <div class="project-stat-label">Deployments</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">--</div>
+                            <div class="project-stat-label">Uptime</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">45s</div>
+                            <div class="project-stat-label">Building...</div>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button onclick="cancelBuild('landing-page-v2')">Cancel</button>
+                        <button onclick="viewLogs('landing-page-v2')">View Logs</button>
+                        <button onclick="settingsProject('landing-page-v2')">Settings</button>
+                    </div>
+                </div>
+
+                <!-- Project 4 - Failed -->
+                <div class="project-card" data-status="failed">
+                    <div class="project-header">
+                        <div class="project-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔧</div>
+                        <span class="project-status status-failed">
+                            <span class="status-dot"></span>
+                            Failed
+                        </span>
+                    </div>
+                    <div class="project-name">experimental-feature</div>
+                    <div class="project-url">
+                        ⚠️ Build failed 15 min ago
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Rust</span>
+                        <span class="tech-tag">WASM</span>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-stat">
+                            <div class="project-stat-value">3</div>
+                            <div class="project-stat-label">Deployments</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">0%</div>
+                            <div class="project-stat-label">Success</div>
+                        </div>
+                        <div class="project-stat">
+                            <div class="project-stat-value">Error</div>
+                            <div class="project-stat-label">Last Build</div>
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="primary" onclick="retryBuild('experimental-feature')">Retry</button>
+                        <button onclick="viewLogs('experimental-feature')">View Logs</button>
+                        <button class="danger" onclick="deleteProject('experimental-feature')">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Deployments -->
+            <div class="deployments-section">
+                <div class="section-header">
+                    <h2>Recent Deployments</h2>
+                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View All</button>
+                </div>
+                <div class="deployment-list">
+                    <div class="deployment-item">
+                        <div class="deployment-status success">✓</div>
+                        <div class="deployment-info">
+                            <div class="deployment-commit">feat: add dark mode toggle</div>
+                            <div class="deployment-meta">my-saas-app • main • abc1234</div>
+                        </div>
+                        <div class="deployment-actions">
+                            <div class="deployment-time">2 min ago</div>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">View</button>
+                        </div>
+                    </div>
+                    <div class="deployment-item">
+                        <div class="deployment-status building">⟳</div>
+                        <div class="deployment-info">
+                            <div class="deployment-commit">chore: update dependencies</div>
+                            <div class="deployment-meta">landing-page-v2 • develop • def5678</div>
+                        </div>
+                        <div class="deployment-actions">
+                            <div class="deployment-time">Building... 45s</div>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Logs</button>
+                        </div>
+                    </div>
+                    <div class="deployment-item">
+                        <div class="deployment-status failed">✗</div>
+                        <div class="deployment-info">
+                            <div class="deployment-commit">fix: memory optimization</div>
+                            <div class="deployment-meta">experimental-feature • main • ghi9012</div>
+                        </div>
+                        <div class="deployment-actions">
+                            <div class="deployment-time">15 min ago</div>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Retry</button>
+                        </div>
+                    </div>
+                    <div class="deployment-item">
+                        <div class="deployment-status success">✓</div>
+                        <div class="deployment-info">
+                            <div class="deployment-commit">feat: new API endpoints</div>
+                            <div class="deployment-meta">mobile-api • main • jkl3456</div>
+                        </div>
+                        <div class="deployment-actions">
+                            <div class="deployment-time">1 hour ago</div>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">View</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal">
+            <h2>Create New Project</h2>
+            <form id="create-form">
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="project-name" placeholder="my-awesome-project" required>
+                </div>
+                <div class="form-group">
+                    <label>Git Repository</label>
+                    <input type="url" id="project-repo" placeholder="https://github.com/user/repo">
+                </div>
+                <div class="form-group">
+                    <label>Framework</label>
+                    <select id="project-framework">
+                        <option value="auto">Auto-detect</option>
+                        <option value="nextjs">Next.js</option>
+                        <option value="react">React</option>
+                        <option value="vue">Vue</option>
+                        <option value="svelte">Svelte</option>
+                        <option value="astro">Astro</option>
+                        <option value="python">Python</option>
+                        <option value="node">Node.js</option>
+                        <option value="static">Static HTML</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Environment</label>
+                    <select id="project-env">
+                        <option value="production">Production</option>
+                        <option value="staging">Staging</option>
+                        <option value="development">Development</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.BLACKROAD_API_URL = 'https://api.blackroad.io';</script>
+    <script src="/js/blackroad-sdk.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/shortcuts.js"></script>
+    <script>
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+                document.querySelectorAll('.project-card').forEach(card => {
+                    if (filter === 'all' || card.dataset.status === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search
+        document.getElementById('project-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.project-card').forEach(card => {
+                const name = card.querySelector('.project-name').textContent.toLowerCase();
+                card.style.display = name.includes(query) ? 'block' : 'none';
+            });
+        });
+
+        // Modal functions
+        function openCreateModal() {
+            document.getElementById('create-modal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').classList.remove('active');
+        }
+
+        // Project actions
+        function deployProject(name) {
+            console.log('Deploying:', name);
+            alert(`Deploying ${name}...`);
+        }
+
+        function viewProject(name) {
+            console.log('Viewing:', name);
+        }
+
+        function settingsProject(name) {
+            console.log('Settings for:', name);
+        }
+
+        function cancelBuild(name) {
+            if (confirm(`Cancel build for ${name}?`)) {
+                console.log('Cancelling:', name);
+            }
+        }
+
+        function viewLogs(name) {
+            console.log('Viewing logs for:', name);
+        }
+
+        function retryBuild(name) {
+            console.log('Retrying:', name);
+            alert(`Retrying build for ${name}...`);
+        }
+
+        function deleteProject(name) {
+            if (confirm(`Delete ${name}? This cannot be undone.`)) {
+                console.log('Deleting:', name);
+            }
+        }
+
+        // Create form
+        document.getElementById('create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('project-name').value;
+            const repo = document.getElementById('project-repo').value;
+            const framework = document.getElementById('project-framework').value;
+            const env = document.getElementById('project-env').value;
+
+            try {
+                if (window.BlackRoadSDK) {
+                    await BlackRoadSDK.api.post('/projects', { name, repo, framework, environment: env });
+                }
+                alert('Project created!');
+                closeCreateModal();
+                window.location.reload();
+            } catch (err) {
+                alert('Failed to create project');
+            }
+        });
+
+        // Close modal on outside click
+        document.getElementById('create-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'create-modal') closeCreateModal();
+        });
+
+        // Handle shortcut actions
+        window.addEventListener('shortcut-action', (e) => {
+            if (e.detail.action === 'create-project') {
+                openCreateModal();
+            }
+        });
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('Service Worker registered:', reg.scope);
+            }).catch(err => {
+                console.log('SW registration failed:', err);
+            });
+        }
+    </script>
+</body>
+</html>

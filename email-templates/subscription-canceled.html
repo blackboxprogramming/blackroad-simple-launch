@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <tr>
+            <td>
+                <!-- Header -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="background: #1e293b; border-radius: 20px 20px 0 0; padding: 40px; text-align: center;">
+                    <tr>
+                        <td>
+                            <div style="font-size: 48px; margin-bottom: 10px;">😢</div>
+                            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 800;">We're Sorry to See You Go</h1>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Body -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td>
+                            <p style="font-size: 18px; color: #1e293b; margin: 0 0 20px;">Hi {{customer_name}},</p>
+
+                            <p style="color: #475569; line-height: 1.7; margin: 0 0 20px;">
+                                Your BlackRoad OS subscription has been canceled. We're sad to see you go!
+                            </p>
+
+                            <div style="background: #f1f5f9; border-radius: 12px; padding: 20px; margin: 25px 0;">
+                                <p style="margin: 0 0 10px; color: #1e293b; font-weight: 600;">What happens next:</p>
+                                <ul style="color: #475569; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                    <li>Your access continues until <strong>{{end_date}}</strong></li>
+                                    <li>All your data will be safely stored</li>
+                                    <li>You can reactivate anytime</li>
+                                </ul>
+                            </div>
+
+                            <p style="color: #475569; line-height: 1.7; margin: 0 0 25px;">
+                                If you have a moment, we'd love to know why you're leaving. Your feedback helps us improve:
+                            </p>
+
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="mailto:blackroad.systems@gmail.com?subject=Cancellation Feedback" style="display: inline-block; background: #667eea; color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px;">
+                                            Share Feedback
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
+                                <p style="color: #1e293b; font-weight: 600; margin: 0 0 15px;">Changed your mind?</p>
+                                <p style="color: #475569; margin: 0 0 20px;">
+                                    You can reactivate your subscription anytime from your dashboard. We'll be here when you're ready!
+                                </p>
+                                <a href="{{dashboard_url}}" style="color: #10b981; text-decoration: none; font-weight: 600;">
+                                    Go to Dashboard →
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="padding: 30px; text-align: center;">
+                    <tr>
+                        <td>
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                                BlackRoad OS • Thanks for being a customer. We hope to see you again!<br>
+                                <a href="{{unsubscribe_url}}" style="color: #94a3b8;">Unsubscribe</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
