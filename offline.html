@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - BlackRoad OS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: 30px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .retry-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 40px;
+            padding: 12px 24px;
+            background: rgba(239, 68, 68, 0.2);
+            border-radius: 50px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-indicator.online {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .status-indicator.online .status-dot {
+            background: #10b981;
+        }
+
+        .tips {
+            margin-top: 50px;
+            text-align: left;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tips h3 {
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .tips ul {
+            list-style: none;
+        }
+
+        .tips li {
+            padding: 8px 0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tips li::before {
+            content: '→';
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Don't worry - some features are still available offline!</p>
+
+        <button class="retry-btn" onclick="checkConnection()">
+            Try Again
+        </button>
+
+        <div class="status-indicator" id="status">
+            <span class="status-dot"></span>
+            <span id="status-text">No connection</span>
+        </div>
+
+        <div class="tips">
+            <h3>While you're offline:</h3>
+            <ul>
+                <li>View cached dashboard data</li>
+                <li>Browse previously loaded pages</li>
+                <li>Draft changes (synced when back online)</li>
+                <li>Access saved documentation</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkConnection() {
+            if (navigator.onLine) {
+                window.location.reload();
+            } else {
+                const btn = document.querySelector('.retry-btn');
+                btn.textContent = 'Still offline...';
+                setTimeout(() => {
+                    btn.textContent = 'Try Again';
+                }, 2000);
+            }
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            status.classList.add('online');
+            statusText.textContent = 'Back online!';
+
+            setTimeout(() => {
+                window.location.href = '/dashboard.html';
+            }, 1500);
+        });
+
+        window.addEventListener('offline', () => {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            status.classList.remove('online');
+            statusText.textContent = 'No connection';
+        });
+
+        // Check initial state
+        if (navigator.onLine) {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>
