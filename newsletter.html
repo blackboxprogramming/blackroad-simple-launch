@@ -189,13 +189,13 @@
                 <p>First 100 newsletter subscribers get a special <strong>10% discount code</strong> (on top of any other offers)</p>
             </div>
 
-            <form id="newsletter-form" onsubmit="handleSubmit(event)">
+            <form id="newsletter-form" data-form="newsletter" data-source="newsletter_page">
                 <div class="form-group">
-                    <input type="text" id="name" placeholder="Your name" required>
+                    <input type="text" id="name" name="name" placeholder="Your name" required>
                 </div>
 
                 <div class="form-group">
-                    <input type="email" id="email" placeholder="your@email.com" required>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required>
                 </div>
 
                 <div class="benefits">
@@ -260,45 +260,8 @@
         </div>
     </div>
 
-    <script>
-        function handleSubmit(event) {
-            event.preventDefault();
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const interests = Array.from(document.querySelectorAll('input[name="interest"]:checked'))
-                .map(cb => cb.value);
-
-            // In production, send to your email service (SendGrid, Mailchimp, etc.)
-            console.log('Newsletter signup:', { name, email, interests });
-
-            // Show success message
-            const card = document.querySelector('.card');
-            card.innerHTML = `
-                <div style="padding: 40px;">
-                    <div style="font-size: 5rem; margin-bottom: 20px;">✅</div>
-                    <h1 style="font-size: 2.5rem; margin-bottom: 20px;">You're In!</h1>
-                    <p style="font-size: 1.2rem; margin-bottom: 30px;">
-                        Check your email for your exclusive 10% discount code.
-                    </p>
-                    <p style="opacity: 0.9; margin-bottom: 30px;">
-                        We sent it to <strong>${email}</strong>
-                    </p>
-                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin: 30px 0;">
-                        <p style="margin-bottom: 10px; opacity: 0.9;">Your discount code:</p>
-                        <div style="font-size: 2rem; font-weight: 800; color: #10b981; letter-spacing: 2px; font-family: monospace;">
-                            WELCOME10
-                        </div>
-                    </div>
-                    <a href="pricing.html" class="submit-btn" style="display: inline-block; text-decoration: none; width: auto; padding: 18px 50px;">
-                        View Pricing →
-                    </a>
-                    <p style="margin-top: 20px; opacity: 0.7; font-size: 0.9rem;">
-                        Expect your first email within 24 hours!
-                    </p>
-                </div>
-            `;
-        }
-    </script>
+    <!-- Configure API URL -->
+    <script>window.BLACKROAD_API_URL = 'https://api.blackroad.io';</script>
+    <script src="/js/blackroad-sdk.js"></script>
 </body>
 </html>

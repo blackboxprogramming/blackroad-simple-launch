@@ -228,6 +228,34 @@ class AffiliateSignup(db.Model):
         }
 
 
+class PasswordResetToken(db.Model):
+    """Password reset tokens"""
+    __tablename__ = 'password_reset_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('reset_tokens', lazy='dynamic'))
+
+    @classmethod
+    def create_for_user(cls, user):
+        """Create a new password reset token for a user"""
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+        reset_token = cls(user_id=user.id, token=token, expires_at=expires_at)
+        db.session.add(reset_token)
+        db.session.commit()
+        return reset_token
+
+    def is_valid(self):
+        """Check if token is still valid"""
+        return not self.used and datetime.utcnow() < self.expires_at
+
+
 # ===========================================
 # HELPER FUNCTIONS
 # ===========================================
@@ -438,6 +466,99 @@ def update_user():
     log_event('user_updated', {'fields': list(data.keys())}, user.id)
 
     return jsonify({'message': 'Profile updated', 'user': user.to_dict()})
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute")
+def forgot_password():
+    """Request password reset"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    email = data.get('email', '').lower().strip()
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    # Always return success to prevent email enumeration
+    if not user:
+        log_event('password_reset_requested', {'email': email, 'found': False})
+        return jsonify({'message': 'If an account exists, a reset link has been sent'})
+
+    # Create reset token
+    reset_token = PasswordResetToken.create_for_user(user)
+    reset_url = f"{os.environ.get('APP_URL', 'https://app.blackroad.io')}/reset-password.html?token={reset_token.token}"
+
+    # Send reset email
+    html_content = f'''
+    <h2>Reset Your Password</h2>
+    <p>Hi {user.name or 'there'},</p>
+    <p>We received a request to reset your BlackRoad OS password.</p>
+    <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+    <p style="margin: 30px 0;">
+        <a href="{reset_url}" style="background: #10b981; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            Reset Password
+        </a>
+    </p>
+    <p>If you didn't request this, you can safely ignore this email.</p>
+    <p>Best,<br>The BlackRoad Team</p>
+    '''
+
+    send_email(email, 'Reset Your BlackRoad OS Password', html_content, user.name)
+    log_event('password_reset_requested', {'email': email, 'found': True}, user.id)
+
+    return jsonify({'message': 'If an account exists, a reset link has been sent'})
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per minute")
+def reset_password():
+    """Reset password with token"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    token = data.get('token', '')
+    new_password = data.get('password', '')
+
+    if not token or not new_password:
+        return jsonify({'error': 'Token and new password are required'}), 400
+
+    if len(new_password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+    reset_token = PasswordResetToken.query.filter_by(token=token).first()
+
+    if not reset_token or not reset_token.is_valid():
+        return jsonify({'error': 'Invalid or expired reset token'}), 400
+
+    user = reset_token.user
+    user.set_password(new_password)
+    reset_token.used = True
+    db.session.commit()
+
+    log_event('password_reset_completed', {'email': user.email}, user.id)
+
+    # Send confirmation email
+    send_email(
+        user.email,
+        'Password Changed - BlackRoad OS',
+        f'''
+        <h2>Password Changed Successfully</h2>
+        <p>Hi {user.name or 'there'},</p>
+        <p>Your BlackRoad OS password has been successfully changed.</p>
+        <p>If you didn't make this change, please contact us immediately at blackroad.systems@gmail.com</p>
+        <p>Best,<br>The BlackRoad Team</p>
+        ''',
+        user.name
+    )
+
+    return jsonify({'message': 'Password reset successfully'})
 
 
 # ===========================================
